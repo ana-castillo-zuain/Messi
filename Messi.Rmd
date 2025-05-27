@@ -15,7 +15,7 @@ options(scipen = 999)
 ```{r}
 competiciones <- read.csv("messi_competitions.csv")
 partidos <- read.csv("messi_matches.csv")
-eventos <- read.csv("messi_events_reduced.csv")
+#eventos <- read.csv("C:/Users/anapa/OneDrive/Escritorio/facu/futbol/messi_events_reduced.csv")
 
 competiciones
 partidos
@@ -669,11 +669,40 @@ xg_prom_partido
 mean_xg <- mean(xg_prom_partido$xg_total)
 mean_xg
 ```
-
-
 ```{r}
 goles_xg <- sum(df_goles_jugadores$goals)/sum(df_goles_jugadores$xg)
 
 goles_xg
 ```
+
+```{r}
+pgoles_equipos <- primer_gol_xg %>%
+  filter(outcome_name== 'Goal') %>%
+  select(team_name, )
+
+pgoles_equipos
+```
+```{r}
+xg_pgol <- primer_gol_xg %>%
+  group_by(match_id,team_name) %>%
+  summarize(xg_total=sum(shot_statsbomb_xg))
+
+xg_pgol
+```
+
+
+```{r}
+pgoles_equipos <- pgoles_equipos %>%
+  right_join(xg_pgol) %>%
+  select(match_id, team_name, xg_total)
+
+pgoles_equipos
+```
+
+```{r}
+mean_pgol <- mean(pgoles_equipos$xg_total)
+
+mean_pgol
+```
+
 
