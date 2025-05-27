@@ -670,6 +670,16 @@ mean_xg <- mean(xg_prom_partido$xg_total)
 mean_xg
 ```
 ```{r}
+a9 <- ggplot(xg_prom_partido, aes(x = xg_total)) +
+  geom_histogram(bins = 100, fill = "orange", color = "black") +
+  geom_vline(xintercept = mean(xg_prom_partido$xg_total, na.rm = TRUE),
+             color = "red", linetype = "dashed") +
+  labs(title = "Diferencia % del xG", x = "xG Diff %", y = "Frecuencia") +
+  theme_minimal()
+a9
+```
+
+```{r}
 goles_xg <- sum(df_goles_jugadores$goals)/sum(df_goles_jugadores$xg)
 
 goles_xg
@@ -703,6 +713,15 @@ pgoles_equipos
 mean_pgol <- mean(pgoles_equipos$xg_total)
 
 mean_pgol
+```
+```{r}
+a10 <- ggplot(pgoles_equipos, aes(x = xg_total)) +
+  geom_histogram(bins = 50, fill = "orange", color = "black") +
+  geom_vline(xintercept = mean(pgoles_equipos$xg_total, na.rm = TRUE),
+             color = "red", linetype = "dashed") +
+  labs(title = "Diferencia % del xG", x = "xG Diff %", y = "Frecuencia") +
+  theme_minimal()
+a10
 ```
 
 
