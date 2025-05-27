@@ -1,0 +1,24 @@
+country_name,competition_name,season_name,competition_id,season_id,competition_description,matches_count,has_360_data,messi_matches_count
+France,Ligue 1,2021/2022,7,108,male_ligue_1_2021_2022,26,False,26
+France,Ligue 1,2022/2023,7,235,male_ligue_1_2022_2023,32,False,32
+International,FIFA World Cup,2018,43,3,male_fifa_world_cup_2018,64,False,4
+International,FIFA World Cup,2022,43,106,male_fifa_world_cup_2022,64,True,7
+South America,Copa America,2024,223,282,male_copa_america_2024,32,False,6
+Spain,La Liga,2004/2005,11,37,male_la_liga_2004_2005,7,False,7
+Spain,La Liga,2005/2006,11,38,male_la_liga_2005_2006,17,False,17
+Spain,La Liga,2006/2007,11,39,male_la_liga_2006_2007,26,False,26
+Spain,La Liga,2007/2008,11,40,male_la_liga_2007_2008,28,False,28
+Spain,La Liga,2008/2009,11,41,male_la_liga_2008_2009,31,False,31
+Spain,La Liga,2009/2010,11,21,male_la_liga_2009_2010,35,False,35
+Spain,La Liga,2010/2011,11,22,male_la_liga_2010_2011,33,False,33
+Spain,La Liga,2011/2012,11,23,male_la_liga_2011_2012,37,False,37
+Spain,La Liga,2012/2013,11,24,male_la_liga_2012_2013,32,False,32
+Spain,La Liga,2013/2014,11,25,male_la_liga_2013_2014,31,False,31
+Spain,La Liga,2014/2015,11,26,male_la_liga_2014_2015,38,False,38
+Spain,La Liga,2015/2016,11,27,male_la_liga_2015_2016,380,False,38
+Spain,La Liga,2016/2017,11,2,male_la_liga_2016_2017,34,False,34
+Spain,La Liga,2017/2018,11,1,male_la_liga_2017_2018,36,False,36
+Spain,La Liga,2018/2019,11,4,male_la_liga_2018_2019,34,False,34
+Spain,La Liga,2019/2020,11,42,male_la_liga_2019_2020,33,False,33
+Spain,La Liga,2020/2021,11,90,male_la_liga_2020_2021,35,False,35
+United States of America,Major League Soccer,2023,44,107,male_major_league_soccer_2023,6,False,6
