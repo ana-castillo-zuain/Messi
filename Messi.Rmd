@@ -391,7 +391,7 @@ df_goles_jugadores <- eventos %>%
     shots_x90 = shots*90/minutes,
     goals_pg = goals/partidos,
     goals_x90 = goals*90/minutes,
-    shots_pgoal = goals/shots,
+    goals_xshot = goals/shots,
     xg_pg = xg/partidos,
     xg_x90 = xg*90/minutes,
     xg_diff_pg = goals_pg - xg_pg,
@@ -687,28 +687,7 @@ goles_xg
 ```
 
 <<<<<<< HEAD
-# Calculo de percentiles
 
-```{r}
-calc_percentil <- function(df, jugador, variable) {
-
-  ecdf_func <- ecdf(df[[variable]])
-  
-  valor_buscado <- df[[variable]][df$player_name == jugador]
-  
-  percentil <- ecdf_func(valor_buscado) * 100
-  
-  return(percentil)
-}
-
-messi_nombre <- "Lionel Andrés Messi Cuccittini"
-
-df_pases_f <- df_pases %>%
-  filter(minutes > 225)
-
-df_goles_jugadores_f <- df_goles_jugadores %>%
-  filter(minutes > 225)
-=======
 ```{r}
 pgoles_equipos <- primer_gol_xg %>%
   filter(outcome_name== 'Goal') %>%
@@ -716,6 +695,7 @@ pgoles_equipos <- primer_gol_xg %>%
 
 pgoles_equipos
 ```
+
 ```{r}
 xg_pgol <- primer_gol_xg %>%
   group_by(match_id,team_name) %>%
@@ -746,7 +726,125 @@ a10 <- ggplot(pgoles_equipos, aes(x = xg_total)) +
   labs(title = "Diferencia % del xG", x = "xG Diff %", y = "Frecuencia") +
   theme_minimal()
 a10
->>>>>>> 829c6d12aa955f74b7bbfc0dea93842ed7afb4e6
 ```
 
+# Calculo de percentiles
 
+```{r}
+calc_percentil <- function(df, jugador, variable) {
+  
+  if (!variable %in% names(df)) {
+    stop(paste("La columna", variable, "no existe en el data frame."))
+  }
+  
+  # 2. Verificamos que haya al menos un valor no NA en la columna
+  datos <- df[[variable]]
+  if (all(is.na(datos))) {
+    stop(paste("La columna", variable, "no contiene valores válidos (solo NA)."))
+  }
+  
+  # 3. Verificamos que el jugador esté en el data frame
+  if (!jugador %in% df$player_name) {
+    stop(paste("El jugador", jugador, "no se encuentra en el data frame."))
+  }
+
+  # 4. Extraer el valor del jugador
+  valor_buscado <- df[[variable]][df$player_name == jugador]
+  if (length(valor_buscado) == 0 || is.na(valor_buscado)) {
+    stop(paste("El jugador", jugador, "no tiene valor válido para la variable", variable))
+  }
+
+  ecdf_func <- ecdf(df[[variable]])
+  
+  valor_buscado <- df[[variable]][df$player_name == jugador]
+  
+  percentil <- ecdf_func(valor_buscado) * 100
+  
+  return(percentil)
+}
+
+messi_nombre <- "Lionel Andrés Messi Cuccittini"
+
+df_pases_f <- df_pases %>%
+  filter(minutes > 225)
+
+df_goles_f <- df_goles_jugadores %>%
+  filter(minutes > 225)
+```
+
+```{r}
+library(fmsb)
+
+# Crear un data frame con los percentiles
+valores_messi_pases <- c(
+  calc_percentil(df_pases_f, messi_nombre, "pases_x90"),
+  calc_percentil(df_pases_f, messi_nombre, "goal_assist_x90"),
+  calc_percentil(df_pases_f, messi_nombre, "assist_xpase"),
+  calc_percentil(df_pases_f, messi_nombre, "shot_assist_x90"),
+  calc_percentil(df_pases_f, messi_nombre, "assist_xshot_assist")
+)
+
+# Nombres de los atributos
+atributos_pase <- c("Pases Totales", "Asistencias", "Ratio de asistencias", "Asistencias de tiro", "Asistencia por tiro")
+
+# Crear el data frame en formato correcto
+df_percentil_pasador <- data.frame(rbind(
+  max = rep(100, length(valores_messi_pases)),
+  min = rep(0, length(valores_messi_pases)),
+  Messi = valores_messi_pases
+))
+
+# Asignar nombres de columnas
+colnames(df_percentil_pasador) <- atributos_pase
+
+# Graficar
+radarchart(df_percentil_pasador,
+           axistype = 1,
+           pcol = "#1DA1F2",
+           pfcol = scales::alpha("#1DA1F2", 0.4),
+           plwd = 2,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "black",
+           vlcex = 0.8,
+           title = "Perfil de pase de Messi (percentiles)")
+
+```
+
+```{r}
+# Crear un data frame con los percentiles
+valores_messi_goles <- c(
+  calc_percentil(df_goles_f, messi_nombre, "goals_x90"),
+  calc_percentil(df_goles_f, messi_nombre, "shots_x90"),
+  calc_percentil(df_goles_f, messi_nombre, "goals_xshot"),
+  calc_percentil(df_goles_f, messi_nombre, "xg_x90"),
+  calc_percentil(df_goles_f, messi_nombre, "xg_diff_x90"),
+  calc_percentil(df_goles_f, messi_nombre, "xg_diff_porc")
+)
+
+# Nombres de los atributos
+atributos_goles <- c("Goles", "Tiros", "Goles por tiro", "Expected goals", "Diferencia de goles esperados","Goles sobre experado")
+
+# Crear el data frame en formato correcto
+df_percentil_goleador <- data.frame(rbind(
+  max = rep(100, length(valores_messi_goles)),
+  min = rep(0, length(valores_messi_goles)),
+  Messi = valores_messi_goles
+))
+
+# Asignar nombres de columnas
+colnames(df_percentil_goleador) <- atributos_goles
+
+# Graficar
+radarchart(df_percentil_goleador,
+           axistype = 1,
+           pcol = "#1DA1F2",
+           pfcol = scales::alpha("#1DA1F2", 0.4),
+           plwd = 2,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "black",
+           vlcex = 0.8,
+           title = "Perfil de tiros de Messi (percentiles)")
+
+```
