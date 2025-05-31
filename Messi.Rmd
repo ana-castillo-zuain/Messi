@@ -670,6 +670,14 @@ mean_xg <- mean(xg_prom_partido$xg_total)
 mean_xg
 ```
 
+a9 <- ggplot(xg_prom_partido, aes(x = xg_total)) +
+  geom_histogram(bins = 100, fill = "orange", color = "black") +
+  geom_vline(xintercept = mean(xg_prom_partido$xg_total, na.rm = TRUE),
+             color = "red", linetype = "dashed") +
+  labs(title = "Diferencia % del xG", x = "xG Diff %", y = "Frecuencia") +
+  theme_minimal()
+a9
+```
 
 ```{r}
 goles_xg <- sum(df_goles_jugadores$goals)/sum(df_goles_jugadores$xg)
@@ -677,6 +685,7 @@ goles_xg <- sum(df_goles_jugadores$goals)/sum(df_goles_jugadores$xg)
 goles_xg
 ```
 
+<<<<<<< HEAD
 # Calculo de percentiles
 
 ```{r}
@@ -698,6 +707,45 @@ df_pases_f <- df_pases %>%
 
 df_goles_jugadores_f <- df_goles_jugadores %>%
   filter(minutes > 225)
+=======
+```{r}
+pgoles_equipos <- primer_gol_xg %>%
+  filter(outcome_name== 'Goal') %>%
+  select(team_name, )
+
+pgoles_equipos
+```
+```{r}
+xg_pgol <- primer_gol_xg %>%
+  group_by(match_id,team_name) %>%
+  summarize(xg_total=sum(shot_statsbomb_xg))
+
+xg_pgol
+```
+
+
+```{r}
+pgoles_equipos <- pgoles_equipos %>%
+  right_join(xg_pgol) %>%
+  select(match_id, team_name, xg_total)
+
+pgoles_equipos
+```
+
+```{r}
+mean_pgol <- mean(pgoles_equipos$xg_total)
+
+mean_pgol
+```
+```{r}
+a10 <- ggplot(pgoles_equipos, aes(x = xg_total)) +
+  geom_histogram(bins = 50, fill = "orange", color = "black") +
+  geom_vline(xintercept = mean(pgoles_equipos$xg_total, na.rm = TRUE),
+             color = "red", linetype = "dashed") +
+  labs(title = "Diferencia % del xG", x = "xG Diff %", y = "Frecuencia") +
+  theme_minimal()
+a10
+>>>>>>> 829c6d12aa955f74b7bbfc0dea93842ed7afb4e6
 ```
 
 
