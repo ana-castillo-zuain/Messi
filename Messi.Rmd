@@ -670,6 +670,7 @@ mean_xg <- mean(xg_prom_partido$xg_total)
 mean_xg
 ```
 
+```{r}
 a9 <- ggplot(xg_prom_partido, aes(x = xg_total)) +
   geom_histogram(bins = 100, fill = "orange", color = "black") +
   geom_vline(xintercept = mean(xg_prom_partido$xg_total, na.rm = TRUE),
