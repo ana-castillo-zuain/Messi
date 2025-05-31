@@ -677,3 +677,27 @@ goles_xg <- sum(df_goles_jugadores$goals)/sum(df_goles_jugadores$xg)
 goles_xg
 ```
 
+# Calculo de percentiles
+
+```{r}
+calc_percentil <- function(df, jugador, variable) {
+
+  ecdf_func <- ecdf(df[[variable]])
+  
+  valor_buscado <- df[[variable]][df$player_name == jugador]
+  
+  percentil <- ecdf_func(valor_buscado) * 100
+  
+  return(percentil)
+}
+
+messi_nombre <- "Lionel Andrés Messi Cuccittini"
+
+df_pases_f <- df_pases %>%
+  filter(minutes > 225)
+
+df_goles_jugadores_f <- df_goles_jugadores %>%
+  filter(minutes > 225)
+```
+
+
