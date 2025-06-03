@@ -855,8 +855,6 @@ pases <- eventos %>%
 pases
 ```
 ```{r}
-library(sf)
-library(terra)
 
 # Weight based on how close start is to x0, y0
 x0 <- 30
@@ -864,11 +862,67 @@ y0 <- 40
 sigma <- 10
 pases$weight <- exp(- ((pases$x - x0)^2 + (pases$y - y0)^2) / (2 * sigma^2))
 
-# Convert to sf using END positions
-sf_pases <- st_as_sf(pases, coords = c("end_x", "end_y"), crs = NA)
-st_crs(sf_pases) <- "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
+library(ks)
 
-# KDE — column name passed as a string
-kde_result <- sf.kde(x = sf_pases, y = sf_pases$weight)
+kde <- kde(x = cbind(pases$end_x, pases$end_y), w = pases$weight)
+plot(kde)
+
+
 
 ```
+```{r}
+library(shiny)
+library(ks)       # weighted KDE
+library(ggplot2)
+library(reshape2)
+
+ui <- fluidPage(
+  titlePanel("Weighted KDE Heatmap of Pass Endpoints"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("x0", "Center X0 (start point):", min = 0, max = 100, value = 50),
+      sliderInput("y0", "Center Y0 (start point):", min = 0, max = 100, value = 50),
+      sliderInput("sigma", "Bandwidth (sigma):", min = 1, max = 30, value = 10)
+    ),
+    mainPanel(
+      plotOutput("heatmapPlot")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  output$heatmapPlot <- renderPlot({
+    # Calculate weights based on distance of start points to (x0,y0)
+    dist_sq <- (pases$start_x - input$x0)^2 + (pases$start_y - input$y0)^2
+    sigma <- input$sigma
+    weights <- exp(-dist_sq / (2 * sigma^2))
+    
+    # Prepare data matrix of end points
+    end_points <- cbind(pases$end_x, pases$end_y)
+    
+    # Compute weighted KDE using ks::kde
+    kde_res <- kde(x = end_points, w = weights, h = sigma, compute.cont = FALSE)
+    
+    # Extract grid and density estimate
+    df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
+    df$z <- as.vector(kde_res$estimate)
+    
+    # Plot heatmap with ggplot2 + red dot for input start point
+    ggplot(df, aes(x = x, y = y, fill = z)) +
+      geom_raster(interpolate = TRUE) +
+      scale_fill_gradient(low = "green", high = "red") +
+      geom_point(aes(x = input$x0, y = input$y0), color = "red", size = 5, shape = 19) +
+      coord_fixed() +
+      labs(title = "Weighted KDE Heatmap of Pass Endpoints",
+           subtitle = paste0("Weighted by distance from start center (", input$x0, ", ", input$y0, ")"),
+           x = "end_x", y = "end_y", fill = "Density") +
+      theme_minimal()
+  })
+}
+
+shinyApp(ui, server)
+
+
+```
+
