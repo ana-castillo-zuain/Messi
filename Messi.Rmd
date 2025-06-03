@@ -848,3 +848,27 @@ radarchart(df_percentil_goleador,
            title = "Perfil de tiros de Messi (percentiles)")
 
 ```
+```{r}
+pases <- eventos %>%
+  filter(type_name == 'Pass', player_name == messi_nombre) 
+
+pases
+```
+```{r}
+library(sf)
+library(terra)
+
+# Weight based on how close start is to x0, y0
+x0 <- 30
+y0 <- 40
+sigma <- 10
+pases$weight <- exp(- ((pases$x - x0)^2 + (pases$y - y0)^2) / (2 * sigma^2))
+
+# Convert to sf using END positions
+sf_pases <- st_as_sf(pases, coords = c("end_x", "end_y"), crs = NA)
+st_crs(sf_pases) <- "+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs"
+
+# KDE — column name passed as a string
+kde_result <- sf.kde(x = sf_pases, y = sf_pases$weight)
+
+```
