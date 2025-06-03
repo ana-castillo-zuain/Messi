@@ -8,6 +8,7 @@ date: "2025-05-06"
 
 ```{r}
 library(tidyverse)
+library(statip)
 
 options(scipen = 999)
 ```
@@ -286,15 +287,26 @@ ggplot(df_eventos_posicion, aes(x = reorder(position_name, -n_eventos), y = n_ev
 
 
 ```{r}
+
+df_shot_assist_xg <- eventos %>%
+  filter(type_name %in% c("Pass", "Shot")) %>%
+  mutate(shot_assist_xg_val = ifelse(pass_shot_assist == "True" | pass_goal_assist == "True", lead(shot_statsbomb_xg), NA)) %>%
+  group_by(player_name) %>%
+  summarize(shot_assist_xg = sum(shot_assist_xg_val, na.rm = TRUE))
+  
+
 df_pases <- eventos %>%
   filter(type_name == "Pass") %>%
   group_by(player_name) %>%
   summarize(
+    posicion = mfv(position_name)[1],
     pases = n(),
-    shot_assist = sum(ifelse(pass_shot_assist == "True", 1, 0), na.rm = T),
-    goal_assist = sum(ifelse(pass_goal_assist == "True", 1, 0), na.rm = T)
+    goal_assist = sum(ifelse(pass_goal_assist == "True", 1, 0), na.rm = T),
+    shot_assist = sum(ifelse(pass_shot_assist == "True", 1, 0), na.rm = T) + goal_assist,
+    pass_completion = (sum(is.na(outcome_name)))/pases
   ) %>%
   left_join(df_partidos_jugador, join_by(player_name == player_name)) %>%
+  left_join(df_shot_assist_xg, join_by(player_name == player_name)) %>%
   mutate(
     pases_pg = pases/partidos,
     pases_x90 = pases*90/minutes,
@@ -303,7 +315,10 @@ df_pases <- eventos %>%
     goal_assist_pg = goal_assist/partidos,
     goal_assist_x90 = goal_assist*90/minutes,
     assist_xpase = goal_assist/pases,
-    assist_xshot_assist = goal_assist/shot_assist
+    assist_xshot_assist = goal_assist/shot_assist,
+    shot_assist_xg_pg = shot_assist_xg/partidos,
+    shot_assist_xg_x90 = shot_assist_xg*90/minutes,
+    xg_xshot_assist = shot_assist_xg/(shot_assist + goal_assist)
   ) %>%
   arrange(desc(pases))
 
@@ -336,9 +351,11 @@ df_pases_messi <- eventos %>%
   ) %>%
   group_by(pass_recipient_name) %>%
   summarize(
+    posicion = mfv(position_name)[1],
     pases = n(),
-    shot_assist = sum(ifelse(pass_shot_assist == "True", 1, 0), na.rm = T),
-    goal_assist = sum(ifelse(pass_goal_assist == "True", 1, 0), na.rm = T)
+    goal_assist = sum(ifelse(pass_goal_assist == "True", 1, 0), na.rm = T),
+    shot_assist = sum(ifelse(pass_shot_assist == "True", 1, 0), na.rm = T) + goal_assist,
+    pass_completion = (sum(is.na(outcome_name)))/pases
   ) %>%
   left_join(df_partidos_cmessi, join_by(pass_recipient_name == player_name)) %>%
   mutate(
@@ -359,9 +376,11 @@ df_pases_a_messi <- eventos %>%
   ) %>%
   group_by(player_name) %>%
   summarize(
+    posicion = mfv(position_name)[1],
     pases = n(),
-    shot_assist = sum(ifelse(pass_shot_assist == "True", 1, 0), na.rm = T),
-    goal_assist = sum(ifelse(pass_goal_assist == "True", 1, 0), na.rm = T)
+    goal_assist = sum(ifelse(pass_goal_assist == "True", 1, 0), na.rm = T),
+    shot_assist = sum(ifelse(pass_shot_assist == "True", 1, 0), na.rm = T) + goal_assist,
+    pass_completion = (sum(is.na(outcome_name)))/pases
   ) %>%
   left_join(df_partidos_cmessi, join_by(player_name == player_name)) %>%
   mutate(
@@ -381,6 +400,7 @@ df_goles_jugadores <- eventos %>%
   filter(type_name == "Shot") %>%
   group_by(player_name) %>%
   summarize(
+    posicion = mfv(position_name)[1],
     shots = n(),
     goals = sum(ifelse(outcome_name == "Goal", 1, 0)),
     xg = sum(shot_statsbomb_xg)
@@ -773,19 +793,31 @@ df_goles_f <- df_goles_jugadores %>%
 ```
 
 ```{r}
+positions <- unique(eventos$position_name)
+
+offensive_positions <- c("Right Center Forward", "Center Forward", "Left Wing", "Right Wing", "Left Center Forward", "Center Attacking Midfield", "Left Attacking Midfield", "Secondary Striker", "Right Attacking Midfield")
+```
+
+
+```{r}
 library(fmsb)
 
-# Crear un data frame con los percentiles
+df_pases_offense <- df_pases_f %>%
+  filter(posicion %in% offensive_positions)
+
 valores_messi_pases <- c(
-  calc_percentil(df_pases_f, messi_nombre, "pases_x90"),
-  calc_percentil(df_pases_f, messi_nombre, "goal_assist_x90"),
-  calc_percentil(df_pases_f, messi_nombre, "assist_xpase"),
-  calc_percentil(df_pases_f, messi_nombre, "shot_assist_x90"),
-  calc_percentil(df_pases_f, messi_nombre, "assist_xshot_assist")
+  calc_percentil(df_pases_offense, messi_nombre, "pases_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "goal_assist_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "assist_xpase"),
+  calc_percentil(df_pases_offense, messi_nombre, "shot_assist_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "assist_xshot_assist"),
+  calc_percentil(df_pases_offense, messi_nombre, "pass_completion"),
+  calc_percentil(df_pases_offense, messi_nombre, "shot_assist_xg_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "xg_xshot_assist")
 )
 
 # Nombres de los atributos
-atributos_pase <- c("Pases Totales", "Asistencias", "Ratio de asistencias", "Asistencias de tiro", "Asistencia por tiro")
+atributos_pase <- c("Pases Totales", "Asistencias", "Asistencia por pase", "Asistencias de tiro", "Asistencia por tiro", "Efectividad de Pases", "Xg asistidos", "Xg por asistencia de tiro")
 
 # Crear el data frame en formato correcto
 df_percentil_pasador <- data.frame(rbind(
@@ -812,18 +844,22 @@ radarchart(df_percentil_pasador,
 ```
 
 ```{r}
+
+df_goles_offense <- df_goles_f %>%
+  filter(posicion %in% offensive_positions)
+
 # Crear un data frame con los percentiles
 valores_messi_goles <- c(
-  calc_percentil(df_goles_f, messi_nombre, "goals_x90"),
-  calc_percentil(df_goles_f, messi_nombre, "shots_x90"),
-  calc_percentil(df_goles_f, messi_nombre, "goals_xshot"),
-  calc_percentil(df_goles_f, messi_nombre, "xg_x90"),
-  calc_percentil(df_goles_f, messi_nombre, "xg_diff_x90"),
-  calc_percentil(df_goles_f, messi_nombre, "xg_diff_porc")
+  calc_percentil(df_goles_offense, messi_nombre, "goals_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "shots_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "goals_xshot"),
+  calc_percentil(df_goles_offense, messi_nombre, "xg_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "xg_diff_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "xg_diff_porc")
 )
 
 # Nombres de los atributos
-atributos_goles <- c("Goles", "Tiros", "Goles por tiro", "Expected goals", "Diferencia de goles esperados","Goles sobre experado")
+atributos_goles <- c("Goles", "Tiros", "Goles por tiro", "Xg", "Diferencia de Xg y goles","Goles sobre experado")
 
 # Crear el data frame en formato correcto
 df_percentil_goleador <- data.frame(rbind(
@@ -848,3 +884,5 @@ radarchart(df_percentil_goleador,
            title = "Perfil de tiros de Messi (percentiles)")
 
 ```
+
+
