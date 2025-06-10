@@ -1049,4 +1049,64 @@ df_carry_dribble <- df_partidos_jugador %>%
   arrange(desc(carries))
 ```
 
+# Defensa
+
+```{r}
+df_recovery <- eventos %>%
+  filter(type_name == "Ball Recovery") %>%
+  group_by(player_name) %>%
+  summarize(
+    recoveries = n(),
+    recovery_x = mean(x),
+    recovery_y = mean(y)
+  )
+
+df_clearance <- eventos %>%
+  filter(type_name == "Clearance") %>%
+  group_by(player_name) %>%
+  summarize(
+    clearances = n(),
+    clearance_outs = sum(ifelse(out == 1, 1, 0), na.rm = T)
+  )
+
+df_blocks <- eventos %>%
+  filter(type_name == "Block") %>%
+  group_by(player_name) %>%
+  summarize(
+    blocks = n(),
+    block_x = mean(x),
+    block_y = mean(y),
+    block_outs = sum(ifelse(out == 1, 1, 0), na.rm = T)
+  )
+
+df_interception <- eventos %>%
+  filter(type_name == "Interception") %>%
+  group_by(player_name) %>%
+  summarize(
+    interceptions = n(),
+    interception_x = mean(x),
+    interception_y = mean(y),
+    interception_success = sum(ifelse(outcome_name %in% c("Won", "Success In Play", "Success Out"), 1, 0))
+  )
+```
+
+```{r}
+df_defensa <- df_partidos_jugador %>%
+  left_join(df_recovery, join_by(player_name == player_name)) %>%
+  left_join(df_clearance, join_by(player_name == player_name)) %>%
+  left_join(df_blocks, join_by(player_name == player_name)) %>%
+  left_join(df_interception, join_by(player_name == player_name)) %>%
+  mutate(
+    recoveries_pg = recoveries/partidos,
+    recoveries_x90 = recoveries*90/minutes,
+    clearances_pg = clearances/partidos,
+    clearances_x90 = clearances*90/minutes,
+    blocks_pg = blocks/partidos,
+    blocks_x90 = blocks*90/minutes,
+    block_out_precent = block_outs/blocks,
+    interceptions_pg = interceptions/partidos,
+    interceptions_x90 = interceptions*90/minutes,
+    interception_success_percent = interception_success/interceptions
+  )
+```
 
