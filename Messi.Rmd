@@ -966,4 +966,87 @@ shinyApp(ui, server)
 
 ```
 
->>>>>>> 141c6da8b2d03888876dc9b7ad090abf730bdd71
+# Analisis Carry
+
+```{r}
+df_carry <- eventos %>%
+  filter(!type_name %in% c("Player On", "Tactical Shift", "Substitution", "Player Off")) %>%
+  mutate(
+    next_type = lead(type_name),
+    next_team = lead(possession_team_name)
+    ) %>%
+  filter(type_name == "Carry") %>%
+  group_by(player_name) %>%
+  summarize(
+    posicion = mfv(position_name)[1],
+    carries = n(),
+    carry_shots = sum(ifelse(next_type == "Shot", 1, 0)),
+    carry_pass = sum(ifelse(next_type == "Pass", 1, 0)),
+    carry_foul = sum(ifelse(next_type == "Foul Won", 1, 0)),
+    carry_dribble = sum(ifelse(next_type == "Dribble", 1, 0)),
+    carry_lost = sum(ifelse(possession_team_name != next_team, 1, 0), na.rm = T),
+    distance_carried = sum(sqrt((end_x - x)**2 + (end_y - y)**2)),
+    mean_x = mean(x),
+    mean_y = mean(y)
+  ) 
+  
+
+df_carry_pressure <- eventos %>%
+  filter(!type_name %in% c("Player On", "Tactical Shift", "Substitution", "Player Off")) %>%
+  mutate(
+    next_type = lead(type_name),
+    next_team = lead(possession_team_name)
+    ) %>%
+  filter(type_name == "Carry" & under_pressure == 1) %>%
+  group_by(player_name) %>%
+  summarize(
+    carries_undp = n(),
+    carry_shots_undp = sum(ifelse(next_type == "Shot", 1, 0)),
+    carry_pass_undp = sum(ifelse(next_type == "Pass", 1, 0)),
+    carry_foul_undp = sum(ifelse(next_type == "Foul Won", 1, 0)),
+    carry_dribble_undp = sum(ifelse(next_type == "Dribble", 1, 0)),
+    carry_lost_undp = sum(ifelse(possession_team_name != next_team, 1, 0), na.rm = T),
+  )
+
+df_dribble <- eventos %>%
+  mutate(
+    next_type = lead(type_name)
+    ) %>%
+  filter(type_name == "Dribble") %>%
+  group_by(player_name) %>%
+  summarize(
+    dribbles = n(),
+    complete_dribbles = sum(ifelse(outcome_name == "Complete", 1, 0))
+  )
+```
+
+```{r}
+df_carry_dribble <- df_partidos_jugador %>%
+  left_join(df_carry, join_by(player_name == player_name)) %>%
+  left_join(df_carry_pressure, join_by(player_name == player_name)) %>%
+  left_join(df_dribble, join_by(player_name == player_name)) %>%
+  mutate(
+    carries_pg = carries/partidos,
+    carries_x90 = carries*90/minutes,
+    pressure_percent = carries_undp/carries,
+    shots_percent = carry_shots/carries,
+    shots_percent_undp = carry_shots_undp/carries_undp,
+    pass_percent = carry_pass/carries,
+    pass_percent_undp = carry_pass_undp/carries_undp,
+    dribble_percent = carry_dribble/carries,
+    dribble_percent_undp = carry_dribble_undp/carries_undp,
+    foul_percent = carry_foul/carries,
+    foul_percent_undp = carry_foul_undp/carries_undp,
+    not_lost_percent = (carries-carry_lost)/carries,
+    distance_pcarry = distance_carried/carries,
+    distance_carried_pg = distance_carried/partidos,
+    distance_carried_x90 = distance_carried*90/minutes,
+    distance_carried_xlost_carry = distance_carried/carry_lost,
+    dribbles_pg = dribbles/partidos,
+    dribbles_x90 = dribbles*90/minutes,
+    dribble_success = complete_dribbles/dribbles
+  ) %>%
+  arrange(desc(carries))
+```
+
+
