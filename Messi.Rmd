@@ -884,13 +884,10 @@ radarchart(df_percentil_goleador,
            title = "Perfil de tiros de Messi (percentiles)")
 
 ```
-<<<<<<< HEAD
-
-
-=======
 ```{r}
 pases <- eventos %>%
-  filter(type_name == 'Pass', player_name == messi_nombre) 
+  filter(type_name == 'Pass', player_name == messi_nombre) %>%
+  drop_na(end_x, end_y, x , y) 
 
 pases
 ```
@@ -902,6 +899,7 @@ y0 <- 40
 sigma <- 10
 pases$weight <- exp(- ((pases$x - x0)^2 + (pases$y - y0)^2) / (2 * sigma^2))
 
+
 library(ks)
 
 kde <- kde(x = cbind(pases$end_x, pases$end_y), w = pases$weight)
@@ -911,17 +909,18 @@ plot(kde)
 
 ```
 ```{r}
+library(ggsoccer)
 library(shiny)
 library(ks)       # weighted KDE
 library(ggplot2)
 library(reshape2)
 
 ui <- fluidPage(
-  titlePanel("Weighted KDE Heatmap of Pass Endpoints"),
+  titlePanel("Mapa de Calor de Inicio y Final de Pases"),
   sidebarLayout(
     sidebarPanel(
-      sliderInput("x0", "Center X0 (start point):", min = 0, max = 100, value = 50),
-      sliderInput("y0", "Center Y0 (start point):", min = 0, max = 100, value = 50),
+      sliderInput("x0", "Punto de comienzo horizontal:", min = 0, max = 121, value = 50),
+      sliderInput("y0", "Punto de comienzo vertical:", min = 0, max = 90, value = 50),
       sliderInput("sigma", "Bandwidth (sigma):", min = 1, max = 30, value = 10)
     ),
     mainPanel(
@@ -931,34 +930,47 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+
+output$heatmapPlot <- renderPlot({
+  # Calculate weights based on start proximity to (x0, y0)
+  dist_sq <- (pases$x - input$x0)^2 + (pases$y - input$y0)^2
+  sigma <- input$sigma
+  weights <- exp(-dist_sq / (2 * sigma^2))
   
-  output$heatmapPlot <- renderPlot({
-    # Calculate weights based on distance of start points to (x0,y0)
-    dist_sq <- (pases$start_x - input$x0)^2 + (pases$start_y - input$y0)^2
-    sigma <- input$sigma
-    weights <- exp(-dist_sq / (2 * sigma^2))
-    
-    # Prepare data matrix of end points
-    end_points <- cbind(pases$end_x, pases$end_y)
-    
-    # Compute weighted KDE using ks::kde
-    kde_res <- kde(x = end_points, w = weights, h = sigma, compute.cont = FALSE)
-    
-    # Extract grid and density estimate
-    df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
-    df$z <- as.vector(kde_res$estimate)
-    
-    # Plot heatmap with ggplot2 + red dot for input start point
-    ggplot(df, aes(x = x, y = y, fill = z)) +
-      geom_raster(interpolate = TRUE) +
-      scale_fill_gradient(low = "green", high = "red") +
-      geom_point(aes(x = input$x0, y = input$y0), color = "red", size = 5, shape = 19) +
-      coord_fixed() +
-      labs(title = "Weighted KDE Heatmap of Pass Endpoints",
-           subtitle = paste0("Weighted by distance from start center (", input$x0, ", ", input$y0, ")"),
-           x = "end_x", y = "end_y", fill = "Density") +
-      theme_minimal()
-  })
+  # Normalize weights (important!)
+  weights <- weights / sum(weights)
+
+  # Prepare end point matrix
+  end_points <- cbind(pases$end_x, pases$end_y)
+  
+  # Remove invalid entries
+  valid_idx <- is.finite(weights) & rowSums(is.finite(end_points)) == 2
+  weights <- weights[valid_idx]
+  end_points <- end_points[valid_idx, ]
+  
+  # KDE bandwidth matrix
+  H <- diag(sigma^2, 2)
+  
+  # KDE estimate
+  kde_res <- kde(x = end_points, w = weights, H = H, compute.cont = FALSE)
+  
+  # Build data frame for ggplot
+  df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
+  df$z <- as.vector(kde_res$estimate)
+  
+  # Plot with pitch
+  ggplot(df, aes(x = x, y = y, fill = z)) +
+    annotate_pitch(colour = "white", fill = "green4", alpha = 0.3, dimensions = pitch_statsbomb) +
+    theme_pitch() +
+    geom_raster(interpolate = TRUE, alpha = 0.8) +
+    scale_fill_gradient(low = "green4", high = "red") +
+    geom_point(aes(x = input$x0, y = input$y0), color = "blue", size = 4) +
+    coord_fixed(xlim = c(0, 120), ylim = c(0, 80)) +
+    labs(title = "Mapa de calor del KDE ponderado de destino de pases",
+         subtitle = paste0("Ponderaado por su cercania a: (", input$x0, ", ", input$y0, ")"),
+         fill = "Density")
+})
+
 }
 
 shinyApp(ui, server)
