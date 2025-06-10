@@ -1038,16 +1038,60 @@ df_carry_dribble <- df_partidos_jugador %>%
     foul_percent = carry_foul/carries,
     foul_percent_undp = carry_foul_undp/carries_undp,
     not_lost_percent = (carries-carry_lost)/carries,
+    not_lost_percent_undp = (carries_undp-carry_lost_undp)/carries_undp,
     distance_pcarry = distance_carried/carries,
-    distance_carried_pg = distance_carried/partidos,
-    distance_carried_x90 = distance_carried*90/minutes,
-    distance_carried_xlost_carry = distance_carried/carry_lost,
+    distance_pg = distance_carried/partidos,
+    distance_x90 = distance_carried*90/minutes,
+    distance_xlost_carry = distance_carried/carry_lost,
     dribbles_pg = dribbles/partidos,
     dribbles_x90 = dribbles*90/minutes,
     dribble_success = complete_dribbles/dribbles
   ) %>%
   arrange(desc(carries))
 ```
+
+```{r}
+df_carry_dribble_f <- df_carry_dribble %>%
+  filter(minutes > 225)
+
+df_carry_dribble_offense <- df_carry_dribble_f %>%
+  filter(posicion %in% offensive_positions)
+
+valores_messi_carry <- c(
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "carries_x90"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "dribbles_x90"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "foul_percent"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "not_lost_percent"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "not_lost_percent_undp"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "dribble_success"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "distance_pcarry"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "distance_xlost_carry")
+)
+
+atributos_carry <- c("Conducciones", "Regates", "Faltas a favor", "Conducciones completas", "Conducciones completas bajo presion","Regates completos", "Distancia por conduccion", "Distancia por perdida")
+
+df_percentil_carry <- data.frame(rbind(
+  max = rep(100, length(valores_messi_carry)),
+  min = rep(0, length(valores_messi_carry)),
+  Messi = valores_messi_carry
+))
+
+# Asignar nombres de columnas
+colnames(df_percentil_carry) <- atributos_carry
+
+# Graficar
+radarchart(df_percentil_carry,
+           axistype = 1,
+           pcol = "#1DA1F2",
+           pfcol = scales::alpha("#1DA1F2", 0.4),
+           plwd = 2,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "black",
+           vlcex = 0.8,
+           title = "Perfil de conduccion de Messi (percentiles)")
+```
+
 
 # Defensa
 
@@ -1056,6 +1100,7 @@ df_recovery <- eventos %>%
   filter(type_name == "Ball Recovery") %>%
   group_by(player_name) %>%
   summarize(
+    posicion = mfv(position_name)[1],
     recoveries = n(),
     recovery_x = mean(x),
     recovery_y = mean(y)
@@ -1109,4 +1154,44 @@ df_defensa <- df_partidos_jugador %>%
     interception_success_percent = interception_success/interceptions
   )
 ```
+
+```{r}
+df_defensa_f <- df_defensa %>%
+  filter(minutes > 225)
+
+df_defensa_offense <- df_defensa_f %>%
+  filter(posicion %in% offensive_positions)
+
+valores_messi_defensa <- c(
+  calc_percentil(df_defensa_offense, messi_nombre, "recoveries_x90"),
+  calc_percentil(df_defensa_offense, messi_nombre, "clearances_x90"),
+  calc_percentil(df_defensa_offense, messi_nombre, "blocks_x90"),
+  calc_percentil(df_defensa_offense, messi_nombre, "interceptions_x90"),
+  calc_percentil(df_defensa_offense, messi_nombre, "interception_success_percent")
+)
+
+atributos_defensa <- c("Recuperaciones", "Despejes", "Bloqueos", "Intercepciones", "Intercepciones exitosas")
+
+df_percentil_defensa <- data.frame(rbind(
+  max = rep(100, length(valores_messi_defensa)),
+  min = rep(0, length(valores_messi_defensa)),
+  Messi = valores_messi_defensa
+))
+
+# Asignar nombres de columnas
+colnames(df_percentil_defensa) <- atributos_defensa
+
+# Graficar
+radarchart(df_percentil_defensa,
+           axistype = 1,
+           pcol = "#1DA1F2",
+           pfcol = scales::alpha("#1DA1F2", 0.4),
+           plwd = 2,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "black",
+           vlcex = 0.8,
+           title = "Perfil de defensa de Messi (percentiles)")
+```
+
 
