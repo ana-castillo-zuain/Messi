@@ -966,8 +966,8 @@ output$heatmapPlot <- renderPlot({
     scale_fill_gradient(low = "green4", high = "red") +
     geom_point(aes(x = input$x0, y = input$y0), color = "blue", size = 4) +
     coord_fixed(xlim = c(0, 120), ylim = c(0, 80)) +
-    labs(title = "Weighted KDE Heatmap of Pass Endpoints",
-         subtitle = paste0("Weighted by start proximity to (", input$x0, ", ", input$y0, ")"),
+    labs(title = "Mapa de calor del KDE ponderado de destino de pases",
+         subtitle = paste0("Ponderaado por su cercania a: (", input$x0, ", ", input$y0, ")"),
          fill = "Density")
 })
 
