@@ -396,6 +396,38 @@ df_pases_a_messi
 ```
 
 ```{r}
+g1 <- head(df_pases_messi,10) %>% filter(!is.na(pass_recipient_name)) %>%
+  mutate(pass_recipient_name = factor(pass_recipient_name, levels = pass_recipient_name[order(pases)])) %>%
+  ggplot(aes(x = pass_recipient_name, y = pases, fill = posicion)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Pases de Messi a otros jugadores",
+       x = "Jugador",
+       y = "Cantidad de pases",
+       fill = "Posición") +
+  theme_minimal()
+
+g1
+
+```
+```{r}
+g2 <- head(df_pases_a_messi,10) %>% filter(!is.na(player_name)) %>%
+  mutate(player_name = factor(player_name, levels = player_name[order(pases)])) %>%
+  ggplot(aes(x = player_name, y = pases, fill = posicion)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(title = "Pases de Messi a otros jugadores",
+       x = "Jugador",
+       y = "Cantidad de pases",
+       fill = "Posición") +
+  theme_minimal()
+
+g2
+
+```
+
+
+```{r}
 df_goles_jugadores <- eventos %>%
   filter(type_name == "Shot") %>%
   group_by(player_name) %>%
@@ -890,6 +922,12 @@ pases <- eventos %>%
   drop_na(end_x, end_y, x , y) 
 
 pases
+
+pases_a_messi <- eventos %>%
+  filter(type_name == 'Pass', pass_recipient_name == messi_nombre) %>%
+  drop_na(end_x, end_y, x , y) 
+
+pases_a_messi
 ```
 ```{r}
 
@@ -916,7 +954,7 @@ library(ggplot2)
 library(reshape2)
 
 ui <- fluidPage(
-  titlePanel("Mapa de Calor de Inicio y Final de Pases"),
+  titlePanel("Mapa de Calor de Pases de Messi"),
   sidebarLayout(
     sidebarPanel(
       sliderInput("x0", "Punto de comienzo horizontal:", min = 0, max = 121, value = 50),
@@ -977,6 +1015,68 @@ shinyApp(ui, server)
 
 
 ```
+```{r}
+ui2 <- fluidPage(
+  titlePanel("Mapa de Calor de Pases a Messi"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("x0", "Punto de comienzo horizontal:", min = 0, max = 121, value = 50),
+      sliderInput("y0", "Punto de comienzo vertical:", min = 0, max = 90, value = 50),
+      sliderInput("sigma", "Bandwidth (sigma):", min = 1, max = 30, value = 10)
+    ),
+    mainPanel(
+      plotOutput("heatmapPlot")
+    )
+  )
+)
+
+server2 <- function(input, output, session) {
+
+output$heatmapPlot <- renderPlot({
+  # Calculate weights based on start proximity to (x0, y0)
+  dist_sq <- (pases_a_messi$x - input$x0)^2 + (pases_a_messi$y - input$y0)^2
+  sigma <- input$sigma
+  weights <- exp(-dist_sq / (2 * sigma^2))
+  
+  # Normalize weights (important!)
+  weights <- weights / sum(weights)
+
+  # Prepare end point matrix
+  end_points <- cbind(pases_a_messi$end_x, pases_a_messi$end_y)
+  
+  # Remove invalid entries
+  valid_idx <- is.finite(weights) & rowSums(is.finite(end_points)) == 2
+  weights <- weights[valid_idx]
+  end_points <- end_points[valid_idx, ]
+  
+  # KDE bandwidth matrix
+  H <- diag(sigma^2, 2)
+  
+  # KDE estimate
+  kde_res <- kde(x = end_points, w = weights, H = H, compute.cont = FALSE)
+  
+  # Build data frame for ggplot
+  df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
+  df$z <- as.vector(kde_res$estimate)
+  
+  # Plot with pitch
+  ggplot(df, aes(x = x, y = y, fill = z)) +
+    annotate_pitch(colour = "white", fill = "green4", alpha = 0.3, dimensions = pitch_statsbomb) +
+    theme_pitch() +
+    geom_raster(interpolate = TRUE, alpha = 0.8) +
+    scale_fill_gradient(low = "green4", high = "red") +
+    geom_point(aes(x = input$x0, y = input$y0), color = "blue", size = 4) +
+    coord_fixed(xlim = c(0, 120), ylim = c(0, 80)) +
+    labs(title = "Mapa de calor del KDE ponderado de destino de pases",
+         subtitle = paste0("Ponderaado por su cercania a: (", input$x0, ", ", input$y0, ")"),
+         fill = "Density")
+})
+
+}
+
+shinyApp(ui2, server2)
+```
+
 
 # Analisis Carry
 
