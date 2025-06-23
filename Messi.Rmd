@@ -1206,4 +1206,21 @@ radarchart(df_percentil_defensa,
            title = "Perfil de defensa de Messi (percentiles)")
 ```
 
+```{r}
+formaciones <- eventos %>%
+  group_by(tactics_formation) %>%
+  summarize(
+    n = n()
+  ) %>%
+  filter(!is.na(tactics_formation)) %>%
+  mutate(tactics_formation = as.character(tactics_formation)) %>%
+  arrange(desc(n)) 
+
+ggplot(formaciones, aes(x = reorder(tactics_formation, -n), y = n)) + 
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Frecuencia de formaciones",
+       x = "Formacion",
+       y = "Frecuencia") +
+  theme_minimal()
+```
 
