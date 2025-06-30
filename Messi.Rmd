@@ -13,6 +13,8 @@ library(statip)
 options(scipen = 999)
 ```
 
+# Carga de datos
+
 ```{r}
 competiciones <- read.csv("messi_competitions.csv")
 partidos <- read.csv("messi_matches.csv")
@@ -23,11 +25,17 @@ partidos
 eventos
 ```
 
+# Limpieza y estructura
+
+### Competiciones y partidos
+
 ```{r}
 unique(competiciones$competition_name)
 
 sum(competiciones$messi_matches_count)
 ```
+
+### Limpieza de NA y variables redundantes
 
 ```{r}
 partidos <- partidos %>%
@@ -39,6 +47,8 @@ eventos <- eventos %>%
 eventos[eventos == ""] <- NA
 ```
 
+### Partidos por competicion
+
 ```{r}
 competition_match_count <- competiciones %>%
   group_by(competition_name) %>%
@@ -49,63 +59,7 @@ competition_match_count <- competiciones %>%
 competition_match_count
 ```
 
-```{r}
-
-equipos_locales <- partidos %>%
-  group_by(home_team_name) %>%
-  summarise(
-    n = n()
-  ) %>%
-  arrange(desc(n))
-
-messi_equipos <- c("Barcelona", "Argentina", "Inter Miami", "Paris Saint-Germain")
-
-partidos <- partidos %>%
-  mutate(
-    messi_local = ifelse(partidos$home_team_name %in% messi_equipos, 1, 0)
-  )
-
-porc_local <- mean(partidos$messi_local)
-
-porc_local
-```
-```{r}
-prom_gol <- (mean(partidos$home_score) + mean(partidos$away_score))/2
-
-prom_gol_local <- mean(partidos$home_score)
-
-prom_gol_vis <- mean(partidos$away_score)
-
-prom_gol_mlocal <- sum(ifelse(partidos$messi_local == 1, partidos$home_score, 0))/sum(ifelse(partidos$messi_local == 1, 1, 0))
-
-prom_gol_mvis <- sum(ifelse(partidos$messi_local == 0, partidos$away_score, 0))/sum(ifelse(partidos$messi_local == 0, 1, 0))
-
-prom_gol
-
-prom_gol_local
-prom_gol_vis
-
-prom_gol_mlocal
-prom_gol_mvis
-``` 
-
-```{r}
-df_scores <- partidos %>%
-  select(home_score, away_score) %>%
-  pivot_longer(cols = everything(), 
-               names_to = "equipo", 
-               values_to = "goles") %>%
-  mutate(goles = as.factor(goles)) %>%
-  count(equipo, goles)
-
-ggplot(df_scores, aes(x = goles, y = n, fill = equipo)) +
-  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
-  scale_fill_brewer(palette = "Set1") +
-  labs(title = "Frecuencia de categorías por grupo",
-       x = "Goles",
-       y = "Conteo") +
-  theme_minimal()
-```
+### Variables por tipo de competicion
 
 ```{r}
 df_tipo_eventos <- eventos %>%
@@ -135,6 +89,71 @@ df_tipo_eventos <- eventos %>%
 df_tipo_eventos
 ```
 
+# Analisis exploratorio de partidos y eventos
+
+### Analisis de localia
+
+```{r}
+
+equipos_locales <- partidos %>%
+  group_by(home_team_name) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+messi_equipos <- c("Barcelona", "Argentina", "Inter Miami", "Paris Saint-Germain")
+
+partidos <- partidos %>%
+  mutate(
+    messi_local = ifelse(partidos$home_team_name %in% messi_equipos, 1, 0)
+  )
+
+porc_local <- mean(partidos$messi_local)
+
+porc_local
+```
+
+```{r}
+prom_gol <- (mean(partidos$home_score) + mean(partidos$away_score))/2
+
+prom_gol_local <- mean(partidos$home_score)
+
+prom_gol_vis <- mean(partidos$away_score)
+
+prom_gol_mlocal <- sum(ifelse(partidos$messi_local == 1, partidos$home_score, 0))/sum(ifelse(partidos$messi_local == 1, 1, 0))
+
+prom_gol_mvis <- sum(ifelse(partidos$messi_local == 0, partidos$away_score, 0))/sum(ifelse(partidos$messi_local == 0, 1, 0))
+
+prom_gol
+
+prom_gol_local
+prom_gol_vis
+
+prom_gol_mlocal
+prom_gol_mvis
+```
+
+```{r}
+df_scores <- partidos %>%
+  select(home_score, away_score) %>%
+  pivot_longer(cols = everything(), 
+               names_to = "equipo", 
+               values_to = "goles") %>%
+  mutate(goles = as.factor(goles)) %>%
+  count(equipo, goles)
+
+ggplot(df_scores, aes(x = goles, y = n, fill = equipo)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  scale_fill_brewer(palette = "Set1") +
+  labs(title = "Frecuencia de categorías por grupo",
+       x = "Goles",
+       y = "Conteo") +
+  theme_minimal()
+```
+
+### Distribucion de tipo de eventos
+
 ```{r}
 library(ggplot2)
 ggplot(df_tipo_eventos, aes(x = reorder(type_name, -porc), y = porc)) +
@@ -149,9 +168,7 @@ ggplot(df_tipo_eventos, aes(x = reorder(type_name, -porc), y = porc)) +
 
 ```
 
-que variables y que categorias de esas variables estan asociadas a cada tipo de evento?
-
-Cantidad de partidos por equipo:
+### Partidos por equipo
 
 ```{r}
 df_partidos_equipo <- partidos %>% 
@@ -168,6 +185,8 @@ df_partidos_equipo <- partidos %>%
 df_partidos_equipo
 ```
 
+### Eventos por jugador
+
 ```{r}
 df_eventos_jugador <- eventos %>%
   group_by(player_name) %>%
@@ -179,7 +198,72 @@ df_eventos_jugador <- eventos %>%
 df_eventos_jugador
 ```
 
+### Eventos por posicion
+
 ```{r}
+df_eventos_posicion <- eventos %>%
+  group_by(position_name) %>%
+  summarize(
+    n_eventos = n()
+  ) %>%
+  arrange(desc(n_eventos))
+
+df_eventos_posicion
+```
+
+```{r}
+ggplot(df_eventos_posicion, aes(x = reorder(position_name, -n_eventos), y = n_eventos)) +
+  geom_col(fill = "lightblue", width = 0.7) +
+  labs(
+    title = "Frecuencia de eventos por posicion",
+    x = "Posicion",
+    y = "Cantidad de eventos"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### Partidos jugados con messi por jugador
+
+```{r}
+df_partidos_cmessi <- eventos %>%
+  filter(team_name %in% c("Barcelona", "Argentina", "Inter Miami", "Paris Saint-Germain")) %>%
+  distinct(match_id, player_name) %>%
+  group_by(player_name) %>%
+  summarize(
+    partidos_m = n()
+  ) %>%
+  arrange(desc(partidos_m))
+
+df_partidos_cmessi
+```
+
+### Formaciones mas frecuentes
+
+```{r}
+formaciones <- eventos %>%
+  group_by(tactics_formation) %>%
+  summarize(
+    n = n()
+  ) %>%
+  filter(!is.na(tactics_formation)) %>%
+  mutate(tactics_formation = as.character(tactics_formation)) %>%
+  arrange(desc(n)) 
+
+ggplot(formaciones, aes(x = reorder(tactics_formation, -n), y = n)) + 
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Frecuencia de formaciones",
+       x = "Formacion",
+       y = "Frecuencia") +
+  theme_minimal()
+```
+
+# Extraccion de minutos por jugador
+
+```{r}
+
+# Sustituciones por partido
+
 df_substitutions <- eventos %>%
   filter(type_name == "Substitution") %>%
   select(match_id, minute, second, player_id, substitution_replacement_id) %>%
@@ -195,11 +279,15 @@ df_substitutions <- eventos %>%
   ) %>%
   select(-minute, -second)
   
+# Jugadores participes en cada partido
+
 df_match_players <- eventos %>%
   mutate(player_id = ifelse(!is.na(substitution_replacement_id), substitution_replacement_id, player_id)) %>%
   filter(!is.na(player_id)) %>%
   select(match_id, player_id) %>%
   distinct(match_id, player_id)
+
+# Longitud de cada partido
 
 df_match_length <- eventos %>%
   filter(type_name == "Half End" & period < 5) %>%
@@ -216,9 +304,11 @@ df_match_players <- df_match_players %>%
 
 ```{r}
 
+# Sustituciones por partido por jugador
+
 df_match_players_sub <- df_match_players %>%
   left_join(df_substitutions, join_by(match_id == match_id, player_id == player_id)) %>%
-  mutate(double = ifelse(
+  mutate(double = ifelse(               # Double si entra y sale en el mismo partido
     match_id == lead(match_id) & 
     player_id == lead(player_id),
     lead(minuto),
@@ -229,6 +319,8 @@ df_match_players_sub <- df_match_players %>%
       in_out)
     ) %>%
   filter(!(player_id == lag(player_id) & match_id == lag(match_id)))
+
+# Calculo de minutos
 
 df_minutes_players <- df_match_players_sub %>%
   group_by(player_id) %>%
@@ -243,6 +335,9 @@ df_minutes_players <- df_match_players_sub %>%
 ```
 
 ```{r}
+
+# Union de nombres de jugadores
+
 df_player_ids <- eventos %>%
   distinct(player_id, player_name)
 
@@ -261,30 +356,10 @@ df_partidos_jugador <- eventos %>%
 
 df_partidos_jugador
 ```
-```{r}
-df_eventos_posicion <- eventos %>%
-  group_by(position_name) %>%
-  summarize(
-    n_eventos = n()
-  ) %>%
-  arrange(desc(n_eventos))
 
-df_eventos_posicion
-```
+# Analisis de pases
 
-
-```{r}
-ggplot(df_eventos_posicion, aes(x = reorder(position_name, -n_eventos), y = n_eventos)) +
-  geom_col(fill = "lightblue", width = 0.7) +
-  labs(
-    title = "Frecuencia de eventos por posicion",
-    x = "Posicion",
-    y = "Cantidad de eventos"
-  ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-```
-
+### Creacion de dfs
 
 ```{r}
 
@@ -324,24 +399,6 @@ df_pases <- eventos %>%
 
 df_pases
 ```
-
-# Contar partidos jugados con messi
-
-```{r}
-df_partidos_cmessi <- eventos %>%
-  filter(team_name %in% c("Barcelona", "Argentina", "Inter Miami", "Paris Saint-Germain")) %>%
-  distinct(match_id, player_name) %>%
-  group_by(player_name) %>%
-  summarize(
-    partidos_m = n()
-  ) %>%
-  arrange(desc(partidos_m))
-
-df_partidos_cmessi
-```
-
-
-A que jugadores dio mas pases messi y de quienes recibe
 
 ```{r}
 df_pases_messi <- eventos %>%
@@ -395,28 +452,30 @@ df_pases_a_messi <- eventos %>%
 df_pases_a_messi
 ```
 
+### Top pases totales
+
 ```{r}
 g1 <- head(df_pases_messi,10) %>% filter(!is.na(pass_recipient_name)) %>%
   mutate(pass_recipient_name = factor(pass_recipient_name, levels = pass_recipient_name[order(pases)])) %>%
-  ggplot(aes(x = pass_recipient_name, y = pases, fill = posicion)) +
-  geom_bar(stat = "identity") +
+  ggplot(aes(x = pass_recipient_name, y = pases)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
   coord_flip() +
   labs(title = "Pases de Messi a otros jugadores",
        x = "Jugador",
-       y = "Cantidad de pases",
-       fill = "Posición") +
+       y = "Cantidad de pases") +
   theme_minimal()
 
 g1
 
 ```
+
 ```{r}
 g2 <- head(df_pases_a_messi,10) %>% filter(!is.na(player_name)) %>%
   mutate(player_name = factor(player_name, levels = player_name[order(pases)])) %>%
   ggplot(aes(x = player_name, y = pases, fill = posicion)) +
   geom_bar(stat = "identity") +
   coord_flip() +
-  labs(title = "Pases de Messi a otros jugadores",
+  labs(title = "Pases a Messi de otros jugadores",
        x = "Jugador",
        y = "Cantidad de pases",
        fill = "Posición") +
@@ -426,6 +485,7 @@ g2
 
 ```
 
+# Analisis de tiros, goles y xg
 
 ```{r}
 df_goles_jugadores <- eventos %>%
@@ -482,6 +542,7 @@ p1 <- ggplot(muestra_xg, aes(x = reorder(player_name, shots_pg), y = shots_pg)) 
 p1
 
 ```
+
 ```{r}
 
 muestra_goles <- df_goles_jugadores %>% 
@@ -507,6 +568,7 @@ p2 <- ggplot(muestra_goles, aes(x = reorder(player_name, goals_pg), y = goals_pg
 
 p2
 ```
+
 ```{r}
 muestra_xg <- df_goles_jugadores %>% 
   arrange(desc(xg_pg)) %>%
@@ -531,6 +593,7 @@ p3 <- ggplot(muestra_xg, aes(x = reorder(player_name, xg_pg), y = xg_pg)) +
 
 p3
 ```
+
 ```{r}
 muestra_xg_diff <- df_goles_jugadores %>% 
   arrange(desc(xg_diff_porc)) %>%
@@ -555,6 +618,7 @@ p4 <- ggplot(muestra_xg_diff, aes(x = reorder(player_name, xg_diff_porc), y = xg
 
 p4
 ```
+
 ```{r}
 library(ggplot2)
 library(patchwork)  # for combining multiple plots
@@ -607,6 +671,7 @@ eventos_xg <- eventos %>%
 
 eventos_xg
 ```
+
 ```{r}
 
 combined <- partidos %>%
@@ -653,6 +718,7 @@ xg_partidos <- combined %>%
 
 xg_partidos
 ```
+
 ```{r}
 # Correlación entre goles y xG para equipos ganadores
 cor_ganadores <- cor(xg_partidos$winning_score, xg_partidos$winning_xg, use = "complete.obs")
@@ -665,6 +731,7 @@ cat("Ganadores:", round(cor_ganadores, 3), "\n")
 cat("Perdedores:", round(cor_perdedores, 3), "\n")
 
 ```
+
 ```{r}
 # ¿Cuántas veces el equipo con más xG fue el que ganó?
 victorias_xg <- xg_partidos %>%
@@ -677,6 +744,7 @@ victorias_xg <- xg_partidos %>%
 victorias_xg
 
 ```
+
 ```{r}
 xg_partidos <- xg_partidos %>%
   mutate(goal_diff = winning_score - losing_score)  # diferencia de goles reales
@@ -686,6 +754,7 @@ cor_dif <- cor(xg_partidos$xg_diff, xg_partidos$goal_diff, use = "complete.obs")
 cat("Correlación entre diferencia de xG y diferencia de goles:", round(cor_dif, 3))
 
 ```
+
 ```{r}
 
 ggplot(xg_partidos, aes(x = xg_diff, y = goal_diff)) +
@@ -696,6 +765,7 @@ ggplot(xg_partidos, aes(x = xg_diff, y = goal_diff)) +
        y = "Diferencia de Goles")
 
 ```
+
 ```{r}
 primer_gol_xg <- eventos %>%
   filter(type_name == 'Shot')%>%
@@ -738,7 +808,7 @@ goles_xg <- sum(df_goles_jugadores$goals)/sum(df_goles_jugadores$xg)
 goles_xg
 ```
 
-<<<<<<< HEAD
+\<\<\<\<\<\<\< HEAD
 
 ```{r}
 pgoles_equipos <- primer_gol_xg %>%
@@ -756,7 +826,6 @@ xg_pgol <- primer_gol_xg %>%
 xg_pgol
 ```
 
-
 ```{r}
 pgoles_equipos <- pgoles_equipos %>%
   right_join(xg_pgol) %>%
@@ -770,6 +839,7 @@ mean_pgol <- mean(pgoles_equipos$xg_total)
 
 mean_pgol
 ```
+
 ```{r}
 a10 <- ggplot(pgoles_equipos, aes(x = xg_total)) +
   geom_histogram(bins = 50, fill = "orange", color = "black") +
@@ -780,305 +850,7 @@ a10 <- ggplot(pgoles_equipos, aes(x = xg_total)) +
 a10
 ```
 
-# Calculo de percentiles
-
-```{r}
-calc_percentil <- function(df, jugador, variable) {
-  
-  if (!variable %in% names(df)) {
-    stop(paste("La columna", variable, "no existe en el data frame."))
-  }
-  
-  # 2. Verificamos que haya al menos un valor no NA en la columna
-  datos <- df[[variable]]
-  if (all(is.na(datos))) {
-    stop(paste("La columna", variable, "no contiene valores válidos (solo NA)."))
-  }
-  
-  # 3. Verificamos que el jugador esté en el data frame
-  if (!jugador %in% df$player_name) {
-    stop(paste("El jugador", jugador, "no se encuentra en el data frame."))
-  }
-
-  # 4. Extraer el valor del jugador
-  valor_buscado <- df[[variable]][df$player_name == jugador]
-  if (length(valor_buscado) == 0 || is.na(valor_buscado)) {
-    stop(paste("El jugador", jugador, "no tiene valor válido para la variable", variable))
-  }
-
-  ecdf_func <- ecdf(df[[variable]])
-  
-  valor_buscado <- df[[variable]][df$player_name == jugador]
-  
-  percentil <- ecdf_func(valor_buscado) * 100
-  
-  return(percentil)
-}
-
-messi_nombre <- "Lionel Andrés Messi Cuccittini"
-
-df_pases_f <- df_pases %>%
-  filter(minutes > 225)
-
-df_goles_f <- df_goles_jugadores %>%
-  filter(minutes > 225)
-```
-
-```{r}
-positions <- unique(eventos$position_name)
-
-offensive_positions <- c("Right Center Forward", "Center Forward", "Left Wing", "Right Wing", "Left Center Forward", "Center Attacking Midfield", "Left Attacking Midfield", "Secondary Striker", "Right Attacking Midfield")
-```
-
-
-```{r}
-library(fmsb)
-
-df_pases_offense <- df_pases_f %>%
-  filter(posicion %in% offensive_positions)
-
-valores_messi_pases <- c(
-  calc_percentil(df_pases_offense, messi_nombre, "pases_x90"),
-  calc_percentil(df_pases_offense, messi_nombre, "goal_assist_x90"),
-  calc_percentil(df_pases_offense, messi_nombre, "assist_xpase"),
-  calc_percentil(df_pases_offense, messi_nombre, "shot_assist_x90"),
-  calc_percentil(df_pases_offense, messi_nombre, "assist_xshot_assist"),
-  calc_percentil(df_pases_offense, messi_nombre, "pass_completion"),
-  calc_percentil(df_pases_offense, messi_nombre, "shot_assist_xg_x90"),
-  calc_percentil(df_pases_offense, messi_nombre, "xg_xshot_assist")
-)
-
-# Nombres de los atributos
-atributos_pase <- c("Pases Totales", "Asistencias", "Asistencia por pase", "Asistencias de tiro", "Asistencia por tiro", "Efectividad de Pases", "Xg asistidos", "Xg por asistencia de tiro")
-
-# Crear el data frame en formato correcto
-df_percentil_pasador <- data.frame(rbind(
-  max = rep(100, length(valores_messi_pases)),
-  min = rep(0, length(valores_messi_pases)),
-  Messi = valores_messi_pases
-))
-
-# Asignar nombres de columnas
-colnames(df_percentil_pasador) <- atributos_pase
-
-# Graficar
-radarchart(df_percentil_pasador,
-           axistype = 1,
-           pcol = "#1DA1F2",
-           pfcol = scales::alpha("#1DA1F2", 0.4),
-           plwd = 2,
-           cglcol = "grey",
-           cglty = 1,
-           axislabcol = "black",
-           vlcex = 0.8,
-           title = "Perfil de pase de Messi (percentiles)")
-
-```
-
-```{r}
-
-df_goles_offense <- df_goles_f %>%
-  filter(posicion %in% offensive_positions)
-
-# Crear un data frame con los percentiles
-valores_messi_goles <- c(
-  calc_percentil(df_goles_offense, messi_nombre, "goals_x90"),
-  calc_percentil(df_goles_offense, messi_nombre, "shots_x90"),
-  calc_percentil(df_goles_offense, messi_nombre, "goals_xshot"),
-  calc_percentil(df_goles_offense, messi_nombre, "xg_x90"),
-  calc_percentil(df_goles_offense, messi_nombre, "xg_diff_x90"),
-  calc_percentil(df_goles_offense, messi_nombre, "xg_diff_porc")
-)
-
-# Nombres de los atributos
-atributos_goles <- c("Goles", "Tiros", "Goles por tiro", "Xg", "Diferencia de Xg y goles","Goles sobre experado")
-
-# Crear el data frame en formato correcto
-df_percentil_goleador <- data.frame(rbind(
-  max = rep(100, length(valores_messi_goles)),
-  min = rep(0, length(valores_messi_goles)),
-  Messi = valores_messi_goles
-))
-
-# Asignar nombres de columnas
-colnames(df_percentil_goleador) <- atributos_goles
-
-# Graficar
-radarchart(df_percentil_goleador,
-           axistype = 1,
-           pcol = "#1DA1F2",
-           pfcol = scales::alpha("#1DA1F2", 0.4),
-           plwd = 2,
-           cglcol = "grey",
-           cglty = 1,
-           axislabcol = "black",
-           vlcex = 0.8,
-           title = "Perfil de tiros de Messi (percentiles)")
-
-```
-```{r}
-pases <- eventos %>%
-  filter(type_name == 'Pass', player_name == messi_nombre) %>%
-  drop_na(end_x, end_y, x , y) 
-
-pases
-
-pases_a_messi <- eventos %>%
-  filter(type_name == 'Pass', pass_recipient_name == messi_nombre) %>%
-  drop_na(end_x, end_y, x , y) 
-
-pases_a_messi
-```
-```{r}
-
-# Weight based on how close start is to x0, y0
-x0 <- 30
-y0 <- 40
-sigma <- 10
-pases$weight <- exp(- ((pases$x - x0)^2 + (pases$y - y0)^2) / (2 * sigma^2))
-
-
-library(ks)
-
-kde <- kde(x = cbind(pases$end_x, pases$end_y), w = pases$weight)
-plot(kde)
-
-
-
-```
-```{r}
-library(ggsoccer)
-library(shiny)
-library(ks)       # weighted KDE
-library(ggplot2)
-library(reshape2)
-
-ui <- fluidPage(
-  titlePanel("Mapa de Calor de Pases de Messi"),
-  sidebarLayout(
-    sidebarPanel(
-      sliderInput("x0", "Punto de comienzo horizontal:", min = 0, max = 121, value = 50),
-      sliderInput("y0", "Punto de comienzo vertical:", min = 0, max = 90, value = 50),
-      sliderInput("sigma", "Bandwidth (sigma):", min = 1, max = 30, value = 10)
-    ),
-    mainPanel(
-      plotOutput("heatmapPlot")
-    )
-  )
-)
-
-server <- function(input, output, session) {
-
-output$heatmapPlot <- renderPlot({
-  # Calculate weights based on start proximity to (x0, y0)
-  dist_sq <- (pases$x - input$x0)^2 + (pases$y - input$y0)^2
-  sigma <- input$sigma
-  weights <- exp(-dist_sq / (2 * sigma^2))
-  
-  # Normalize weights (important!)
-  weights <- weights / sum(weights)
-
-  # Prepare end point matrix
-  end_points <- cbind(pases$end_x, pases$end_y)
-  
-  # Remove invalid entries
-  valid_idx <- is.finite(weights) & rowSums(is.finite(end_points)) == 2
-  weights <- weights[valid_idx]
-  end_points <- end_points[valid_idx, ]
-  
-  # KDE bandwidth matrix
-  H <- diag(sigma^2, 2)
-  
-  # KDE estimate
-  kde_res <- kde(x = end_points, w = weights, H = H, compute.cont = FALSE)
-  
-  # Build data frame for ggplot
-  df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
-  df$z <- as.vector(kde_res$estimate)
-  
-  # Plot with pitch
-  ggplot(df, aes(x = x, y = y, fill = z)) +
-    annotate_pitch(colour = "white", fill = "green4", alpha = 0.3, dimensions = pitch_statsbomb) +
-    theme_pitch() +
-    geom_raster(interpolate = TRUE, alpha = 0.8) +
-    scale_fill_gradient(low = "green4", high = "red") +
-    geom_point(aes(x = input$x0, y = input$y0), color = "blue", size = 4) +
-    coord_fixed(xlim = c(0, 120), ylim = c(0, 80)) +
-    labs(title = "Mapa de calor del KDE ponderado de destino de pases",
-         subtitle = paste0("Ponderaado por su cercania a: (", input$x0, ", ", input$y0, ")"),
-         fill = "Density")
-})
-
-}
-
-shinyApp(ui, server)
-
-
-```
-```{r}
-ui2 <- fluidPage(
-  titlePanel("Mapa de Calor de Pases a Messi"),
-  sidebarLayout(
-    sidebarPanel(
-      sliderInput("x0", "Punto de comienzo horizontal:", min = 0, max = 121, value = 50),
-      sliderInput("y0", "Punto de comienzo vertical:", min = 0, max = 90, value = 50),
-      sliderInput("sigma", "Bandwidth (sigma):", min = 1, max = 30, value = 10)
-    ),
-    mainPanel(
-      plotOutput("heatmapPlot")
-    )
-  )
-)
-
-server2 <- function(input, output, session) {
-
-output$heatmapPlot <- renderPlot({
-  # Calculate weights based on start proximity to (x0, y0)
-  dist_sq <- (pases_a_messi$x - input$x0)^2 + (pases_a_messi$y - input$y0)^2
-  sigma <- input$sigma
-  weights <- exp(-dist_sq / (2 * sigma^2))
-  
-  # Normalize weights (important!)
-  weights <- weights / sum(weights)
-
-  # Prepare end point matrix
-  end_points <- cbind(pases_a_messi$end_x, pases_a_messi$end_y)
-  
-  # Remove invalid entries
-  valid_idx <- is.finite(weights) & rowSums(is.finite(end_points)) == 2
-  weights <- weights[valid_idx]
-  end_points <- end_points[valid_idx, ]
-  
-  # KDE bandwidth matrix
-  H <- diag(sigma^2, 2)
-  
-  # KDE estimate
-  kde_res <- kde(x = end_points, w = weights, H = H, compute.cont = FALSE)
-  
-  # Build data frame for ggplot
-  df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
-  df$z <- as.vector(kde_res$estimate)
-  
-  # Plot with pitch
-  ggplot(df, aes(x = x, y = y, fill = z)) +
-    annotate_pitch(colour = "white", fill = "green4", alpha = 0.3, dimensions = pitch_statsbomb) +
-    theme_pitch() +
-    geom_raster(interpolate = TRUE, alpha = 0.8) +
-    scale_fill_gradient(low = "green4", high = "red") +
-    geom_point(aes(x = input$x0, y = input$y0), color = "blue", size = 4) +
-    coord_fixed(xlim = c(0, 120), ylim = c(0, 80)) +
-    labs(title = "Mapa de calor del KDE ponderado de destino de pases",
-         subtitle = paste0("Ponderaado por su cercania a: (", input$x0, ", ", input$y0, ")"),
-         fill = "Density")
-})
-
-}
-
-shinyApp(ui2, server2)
-```
-
-
-# Analisis Carry
+# Analisis de conducciones
 
 ```{r}
 df_carry <- eventos %>%
@@ -1162,50 +934,7 @@ df_carry_dribble <- df_partidos_jugador %>%
   arrange(desc(carries))
 ```
 
-```{r}
-df_carry_dribble_f <- df_carry_dribble %>%
-  filter(minutes > 225)
-
-df_carry_dribble_offense <- df_carry_dribble_f %>%
-  filter(posicion %in% offensive_positions)
-
-valores_messi_carry <- c(
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "carries_x90"),
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "dribbles_x90"),
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "foul_percent"),
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "not_lost_percent"),
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "not_lost_percent_undp"),
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "dribble_success"),
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "distance_pcarry"),
-  calc_percentil(df_carry_dribble_offense, messi_nombre, "distance_xlost_carry")
-)
-
-atributos_carry <- c("Conducciones", "Regates", "Faltas a favor", "Conducciones completas", "Conducciones completas bajo presion","Regates completos", "Distancia por conduccion", "Distancia por perdida")
-
-df_percentil_carry <- data.frame(rbind(
-  max = rep(100, length(valores_messi_carry)),
-  min = rep(0, length(valores_messi_carry)),
-  Messi = valores_messi_carry
-))
-
-# Asignar nombres de columnas
-colnames(df_percentil_carry) <- atributos_carry
-
-# Graficar
-radarchart(df_percentil_carry,
-           axistype = 1,
-           pcol = "#1DA1F2",
-           pfcol = scales::alpha("#1DA1F2", 0.4),
-           plwd = 2,
-           cglcol = "grey",
-           cglty = 1,
-           axislabcol = "black",
-           vlcex = 0.8,
-           title = "Perfil de conduccion de Messi (percentiles)")
-```
-
-
-# Defensa
+# Analisis de defensa
 
 ```{r}
 df_recovery <- eventos %>%
@@ -1267,6 +996,196 @@ df_defensa <- df_partidos_jugador %>%
   )
 ```
 
+# Calculo de percentiles
+
+### Funcion para calculos de percentiles
+
+```{r}
+calc_percentil <- function(df, jugador, variable) {
+  
+  if (!variable %in% names(df)) {
+    stop(paste("La columna", variable, "no existe en el data frame."))
+  }
+  
+  # 2. Verificamos que haya al menos un valor no NA en la columna
+  datos <- df[[variable]]
+  if (all(is.na(datos))) {
+    stop(paste("La columna", variable, "no contiene valores válidos (solo NA)."))
+  }
+  
+  # 3. Verificamos que el jugador esté en el data frame
+  if (!jugador %in% df$player_name) {
+    stop(paste("El jugador", jugador, "no se encuentra en el data frame."))
+  }
+
+  # 4. Extraer el valor del jugador
+  valor_buscado <- df[[variable]][df$player_name == jugador]
+  if (length(valor_buscado) == 0 || is.na(valor_buscado)) {
+    stop(paste("El jugador", jugador, "no tiene valor válido para la variable", variable))
+  }
+
+  ecdf_func <- ecdf(df[[variable]])
+  
+  valor_buscado <- df[[variable]][df$player_name == jugador]
+  
+  percentil <- ecdf_func(valor_buscado) * 100
+  
+  return(percentil)
+}
+
+messi_nombre <- "Lionel Andrés Messi Cuccittini"
+
+df_pases_f <- df_pases %>%
+  filter(minutes > 225)
+
+df_goles_f <- df_goles_jugadores %>%
+  filter(minutes > 225)
+```
+
+### Posiciones ofensivas
+
+```{r}
+positions <- unique(eventos$position_name)
+
+offensive_positions <- c("Right Center Forward", "Center Forward", "Left Wing", "Right Wing", "Left Center Forward", "Center Attacking Midfield", "Left Attacking Midfield", "Secondary Striker", "Right Attacking Midfield")
+```
+
+### Percentiles pases
+
+```{r}
+library(fmsb)
+
+df_pases_offense <- df_pases_f %>%
+  filter(posicion %in% offensive_positions)
+
+valores_messi_pases <- c(
+  calc_percentil(df_pases_offense, messi_nombre, "pases_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "goal_assist_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "assist_xpase"),
+  calc_percentil(df_pases_offense, messi_nombre, "shot_assist_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "assist_xshot_assist"),
+  calc_percentil(df_pases_offense, messi_nombre, "pass_completion"),
+  calc_percentil(df_pases_offense, messi_nombre, "shot_assist_xg_x90"),
+  calc_percentil(df_pases_offense, messi_nombre, "xg_xshot_assist")
+)
+
+# Nombres de los atributos
+atributos_pase <- c("Pases Totales", "Asistencias", "Asistencia por pase", "Asistencias de tiro", "Asistencia por tiro", "Efectividad de Pases", "Xg asistidos", "Xg por asistencia de tiro")
+
+# Crear el data frame en formato correcto
+df_percentil_pasador <- data.frame(rbind(
+  max = rep(100, length(valores_messi_pases)),
+  min = rep(0, length(valores_messi_pases)),
+  Messi = valores_messi_pases
+))
+
+# Asignar nombres de columnas
+colnames(df_percentil_pasador) <- atributos_pase
+
+# Graficar
+radarchart(df_percentil_pasador,
+           axistype = 1,
+           pcol = "#1DA1F2",
+           pfcol = scales::alpha("#1DA1F2", 0.4),
+           plwd = 2,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "black",
+           vlcex = 0.8,
+           title = "Perfil de pase de Messi (percentiles)")
+
+```
+
+### Percentiles tiros
+
+```{r}
+
+df_goles_offense <- df_goles_f %>%
+  filter(posicion %in% offensive_positions)
+
+# Crear un data frame con los percentiles
+valores_messi_goles <- c(
+  calc_percentil(df_goles_offense, messi_nombre, "goals_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "shots_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "goals_xshot"),
+  calc_percentil(df_goles_offense, messi_nombre, "xg_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "xg_diff_x90"),
+  calc_percentil(df_goles_offense, messi_nombre, "xg_diff_porc")
+)
+
+# Nombres de los atributos
+atributos_goles <- c("Goles", "Tiros", "Goles por tiro", "Xg", "Diferencia de Xg y goles","Goles sobre experado")
+
+# Crear el data frame en formato correcto
+df_percentil_goleador <- data.frame(rbind(
+  max = rep(100, length(valores_messi_goles)),
+  min = rep(0, length(valores_messi_goles)),
+  Messi = valores_messi_goles
+))
+
+# Asignar nombres de columnas
+colnames(df_percentil_goleador) <- atributos_goles
+
+# Graficar
+radarchart(df_percentil_goleador,
+           axistype = 1,
+           pcol = "#1DA1F2",
+           pfcol = scales::alpha("#1DA1F2", 0.4),
+           plwd = 2,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "black",
+           vlcex = 0.8,
+           title = "Perfil de tiros de Messi (percentiles)")
+
+```
+
+### Percentiles conducciones
+
+```{r}
+df_carry_dribble_f <- df_carry_dribble %>%
+  filter(minutes > 225)
+
+df_carry_dribble_offense <- df_carry_dribble_f %>%
+  filter(posicion %in% offensive_positions)
+
+valores_messi_carry <- c(
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "carries_x90"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "dribbles_x90"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "foul_percent"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "not_lost_percent"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "not_lost_percent_undp"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "dribble_success"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "distance_pcarry"),
+  calc_percentil(df_carry_dribble_offense, messi_nombre, "distance_xlost_carry")
+)
+
+atributos_carry <- c("Conducciones", "Regates", "Faltas a favor", "Conducciones completas", "Conducciones completas bajo presion","Regates completos", "Distancia por conduccion", "Distancia por perdida")
+
+df_percentil_carry <- data.frame(rbind(
+  max = rep(100, length(valores_messi_carry)),
+  min = rep(0, length(valores_messi_carry)),
+  Messi = valores_messi_carry
+))
+
+# Asignar nombres de columnas
+colnames(df_percentil_carry) <- atributos_carry
+
+# Graficar
+radarchart(df_percentil_carry,
+           axistype = 1,
+           pcol = "#1DA1F2",
+           pfcol = scales::alpha("#1DA1F2", 0.4),
+           plwd = 2,
+           cglcol = "grey",
+           cglty = 1,
+           axislabcol = "black",
+           vlcex = 0.8,
+           title = "Perfil de conduccion de Messi (percentiles)")
+```
+
+### Percentiles defensa
+
 ```{r}
 df_defensa_f <- df_defensa %>%
   filter(minutes > 225)
@@ -1306,21 +1225,168 @@ radarchart(df_percentil_defensa,
            title = "Perfil de defensa de Messi (percentiles)")
 ```
 
-```{r}
-formaciones <- eventos %>%
-  group_by(tactics_formation) %>%
-  summarize(
-    n = n()
-  ) %>%
-  filter(!is.na(tactics_formation)) %>%
-  mutate(tactics_formation = as.character(tactics_formation)) %>%
-  arrange(desc(n)) 
+# Mapa de calor
 
-ggplot(formaciones, aes(x = reorder(tactics_formation, -n), y = n)) + 
-  geom_bar(stat = "identity", fill = "skyblue") +
-  labs(title = "Frecuencia de formaciones",
-       x = "Formacion",
-       y = "Frecuencia") +
-  theme_minimal()
+```{r}
+pases <- eventos %>%
+  filter(type_name == 'Pass', player_name == messi_nombre) %>%
+  drop_na(end_x, end_y, x , y) 
+
+pases
+
+pases_a_messi <- eventos %>%
+  filter(type_name == 'Pass', pass_recipient_name == messi_nombre) %>%
+  drop_na(end_x, end_y, x , y) 
+
+pases_a_messi
 ```
 
+```{r}
+
+# Weight based on how close start is to x0, y0
+x0 <- 30
+y0 <- 40
+sigma <- 10
+pases$weight <- exp(- ((pases$x - x0)^2 + (pases$y - y0)^2) / (2 * sigma^2))
+
+
+library(ks)
+
+kde <- kde(x = cbind(pases$end_x, pases$end_y), w = pases$weight)
+plot(kde)
+
+
+
+```
+
+```{r}
+library(ggsoccer)
+library(shiny)
+library(ks)       # weighted KDE
+library(ggplot2)
+library(reshape2)
+
+ui <- fluidPage(
+  titlePanel("Mapa de Calor de Pases de Messi"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("x0", "Punto de comienzo horizontal:", min = 0, max = 121, value = 50),
+      sliderInput("y0", "Punto de comienzo vertical:", min = 0, max = 90, value = 50),
+      sliderInput("sigma", "Bandwidth (sigma):", min = 1, max = 30, value = 10)
+    ),
+    mainPanel(
+      plotOutput("heatmapPlot")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+
+output$heatmapPlot <- renderPlot({
+  # Calculate weights based on start proximity to (x0, y0)
+  dist_sq <- (pases$x - input$x0)^2 + (pases$y - input$y0)^2
+  sigma <- input$sigma
+  weights <- exp(-dist_sq / (2 * sigma^2))
+  
+  # Normalize weights (important!)
+  weights <- weights / sum(weights)
+
+  # Prepare end point matrix
+  end_points <- cbind(pases$end_x, pases$end_y)
+  
+  # Remove invalid entries
+  valid_idx <- is.finite(weights) & rowSums(is.finite(end_points)) == 2
+  weights <- weights[valid_idx]
+  end_points <- end_points[valid_idx, ]
+  
+  # KDE bandwidth matrix
+  H <- diag(sigma^2, 2)
+  
+  # KDE estimate
+  kde_res <- kde(x = end_points, w = weights, H = H, compute.cont = FALSE)
+  
+  # Build data frame for ggplot
+  df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
+  df$z <- as.vector(kde_res$estimate)
+  
+  # Plot with pitch
+  ggplot(df, aes(x = x, y = y, fill = z)) +
+    annotate_pitch(colour = "white", fill = "green4", alpha = 0.3, dimensions = pitch_statsbomb) +
+    theme_pitch() +
+    geom_raster(interpolate = TRUE, alpha = 0.8) +
+    scale_fill_gradient(low = "green4", high = "red") +
+    geom_point(aes(x = input$x0, y = input$y0), color = "blue", size = 4) +
+    coord_fixed(xlim = c(0, 120), ylim = c(0, 80)) +
+    labs(title = "Mapa de calor del KDE ponderado de destino de pases",
+         subtitle = paste0("Ponderaado por su cercania a: (", input$x0, ", ", input$y0, ")"),
+         fill = "Density")
+})
+
+}
+
+shinyApp(ui, server)
+
+
+```
+
+```{r}
+ui2 <- fluidPage(
+  titlePanel("Mapa de Calor de Pases a Messi"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("x0", "Punto de comienzo horizontal:", min = 0, max = 121, value = 50),
+      sliderInput("y0", "Punto de comienzo vertical:", min = 0, max = 90, value = 50),
+      sliderInput("sigma", "Bandwidth (sigma):", min = 1, max = 30, value = 10)
+    ),
+    mainPanel(
+      plotOutput("heatmapPlot")
+    )
+  )
+)
+
+server2 <- function(input, output, session) {
+
+output$heatmapPlot <- renderPlot({
+  # Calculate weights based on start proximity to (x0, y0)
+  dist_sq <- (pases_a_messi$x - input$x0)^2 + (pases_a_messi$y - input$y0)^2
+  sigma <- input$sigma
+  weights <- exp(-dist_sq / (2 * sigma^2))
+  
+  # Normalize weights (important!)
+  weights <- weights / sum(weights)
+
+  # Prepare end point matrix
+  end_points <- cbind(pases_a_messi$end_x, pases_a_messi$end_y)
+  
+  # Remove invalid entries
+  valid_idx <- is.finite(weights) & rowSums(is.finite(end_points)) == 2
+  weights <- weights[valid_idx]
+  end_points <- end_points[valid_idx, ]
+  
+  # KDE bandwidth matrix
+  H <- diag(sigma^2, 2)
+  
+  # KDE estimate
+  kde_res <- kde(x = end_points, w = weights, H = H, compute.cont = FALSE)
+  
+  # Build data frame for ggplot
+  df <- expand.grid(x = kde_res$eval.points[[1]], y = kde_res$eval.points[[2]])
+  df$z <- as.vector(kde_res$estimate)
+  
+  # Plot with pitch
+  ggplot(df, aes(x = x, y = y, fill = z)) +
+    annotate_pitch(colour = "white", fill = "green4", alpha = 0.3, dimensions = pitch_statsbomb) +
+    theme_pitch() +
+    geom_raster(interpolate = TRUE, alpha = 0.8) +
+    scale_fill_gradient(low = "green4", high = "red") +
+    geom_point(aes(x = input$x0, y = input$y0), color = "blue", size = 4) +
+    coord_fixed(xlim = c(0, 120), ylim = c(0, 80)) +
+    labs(title = "Mapa de calor del KDE ponderado de destino de pases",
+         subtitle = paste0("Ponderaado por su cercania a: (", input$x0, ", ", input$y0, ")"),
+         fill = "Density")
+})
+
+}
+
+shinyApp(ui2, server2)
+```
