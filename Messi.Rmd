@@ -113,7 +113,7 @@ porc_local <- mean(partidos$messi_local)
 
 porc_local
 ```
-
+### Analisis influencia de Messi el promedio de goles
 ```{r}
 prom_gol <- (mean(partidos$home_score) + mean(partidos$away_score))/2
 
@@ -662,7 +662,9 @@ a4 <- ggplot(df_grafico, aes(x = xg_diff_porc)) +
 (a1 | a2) / (a3 | a4)
 
 ```
+# Analisis de Xg
 
+### Creación de dataframes
 ```{r}
 eventos_xg <- eventos %>%
   filter(!is.na(shot_statsbomb_xg)) %>%
@@ -718,7 +720,7 @@ xg_partidos <- combined %>%
 
 xg_partidos
 ```
-
+### Analisis de correlación y certeza de predicción
 ```{r}
 # Correlación entre goles y xG para equipos ganadores
 cor_ganadores <- cor(xg_partidos$winning_score, xg_partidos$winning_xg, use = "complete.obs")
@@ -765,6 +767,7 @@ ggplot(xg_partidos, aes(x = xg_diff, y = goal_diff)) +
        y = "Diferencia de Goles")
 
 ```
+### Analisis del Xg al primer gol
 
 ```{r}
 primer_gol_xg <- eventos %>%
@@ -807,8 +810,6 @@ goles_xg <- sum(df_goles_jugadores$goals)/sum(df_goles_jugadores$xg)
 
 goles_xg
 ```
-
-\<\<\<\<\<\<\< HEAD
 
 ```{r}
 pgoles_equipos <- primer_gol_xg %>%
